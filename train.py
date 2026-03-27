@@ -9,7 +9,7 @@ via TRL/HF — do not supply a second custom template.
 Dataset: JSONL with columns id, prompt (natural language), dsl (single-line JSON string).
 
 References:
-- Qwen2.5-Coder Instruct: chat template + eos </think> / transformers>=4.37
+- Qwen2.5-Coder Instruct: chat template + tokenizer eos_token / transformers>=4.37
 - TRL SFT: prompt-completion with completion-only loss
 """
 
@@ -135,8 +135,8 @@ def main() -> None:
         shuffle_dataset=True,
         report_to="none",
         gradient_checkpointing=args.gradient_checkpointing,
-        # Ensure EOS matches chat training signal for Qwen
-        eos_token="</think>",
+        # Use tokenizer default eos (Qwen uses </think> from config). Passing the string
+        # literal breaks TRL's vocab check because convert_tokens_to_ids splits multi-byte tokens.
         model_init_kwargs=_model_init_kwargs(args),
     )
 
