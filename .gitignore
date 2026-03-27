@@ -13,6 +13,7 @@ outputs/
 # Experiment artifacts
 kitchenSink/repair_bad*/
 kitchenSink/final_repaired/
+kitchenSink/final_repaired_v2/
 kitchenSink/raw_repairs.csv
 kitchenSink/prompt_svg_preview_100.html
 kitchenSink/split_cases/
