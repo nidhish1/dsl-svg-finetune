@@ -43,6 +43,12 @@ DEFAULT_USER_INSTRUCTION = (
     "v, canvas, n, items). No markdown, no explanation. After the JSON line, output "
     "a second line containing only the word END."
 )
+STRICT_REPAIR_USER_INSTRUCTION = (
+    "Return EXACTLY two lines.\n"
+    "Line 1: one valid minified JSON object for schema v2 with keys v,canvas,n,items only.\n"
+    "Line 2: END\n"
+    "No markdown. No prose. No extra lines."
+)
 
 
 def build_messages(prompt: str, system: str, instruction: str) -> list:
@@ -155,6 +161,8 @@ def main() -> None:
     p.add_argument("--shard-index", type=int, default=0, help="This worker shard index [0..num_shards-1]")
     p.add_argument("--bf16", action="store_true")
     p.add_argument("--max-new-tokens", type=int, default=4096)
+    p.add_argument("--retry-on-fail", type=int, default=0, help="Retry count when DSL extraction fails")
+    p.add_argument("--repair-mode", action="store_true", help="Use stricter instruction aimed at parseability")
     p.add_argument("--system-prompt", default=DEFAULT_SYSTEM)
     p.add_argument("--user-instruction", default=DEFAULT_USER_INSTRUCTION)
     args = p.parse_args()
@@ -183,6 +191,9 @@ def main() -> None:
     if not rows:
         sys.exit("No rows assigned to this shard")
 
+    if args.retry_on_fail < 0:
+        sys.exit("--retry-on-fail must be >= 0")
+
     out_dir.mkdir(parents=True, exist_ok=True)
     model, tokenizer = load_model(model_path, device, args.bf16)
 
@@ -192,7 +203,7 @@ def main() -> None:
 
     print(
         f"Running shard {args.shard_index + 1}/{args.num_shards} on {len(rows)} rows "
-        f"(device={device}, max_new_tokens={args.max_new_tokens})",
+        f"(device={device}, max_new_tokens={args.max_new_tokens}, retry_on_fail={args.retry_on_fail})",
         flush=True,
     )
 
@@ -203,11 +214,24 @@ def main() -> None:
         sample_dir.mkdir(parents=True, exist_ok=True)
         (sample_dir / "prompt.txt").write_text(prompt + "\n", encoding="utf-8")
 
-        messages = build_messages(prompt, args.system_prompt, args.user_instruction)
+        base_instruction = STRICT_REPAIR_USER_INSTRUCTION if args.repair_mode else args.user_instruction
+        messages = build_messages(prompt, args.system_prompt, base_instruction)
         raw = generate_raw(model, tokenizer, messages, device, args.max_new_tokens)
         (sample_dir / "raw.txt").write_text(raw, encoding="utf-8")
 
         _obj, dsl_line = extract_dsl_json(raw)
+        attempt = 0
+        while not dsl_line and attempt < args.retry_on_fail:
+            attempt += 1
+            retry_instruction = STRICT_REPAIR_USER_INSTRUCTION
+            retry_messages = build_messages(prompt, args.system_prompt, retry_instruction)
+            retry_raw = generate_raw(model, tokenizer, retry_messages, device, args.max_new_tokens)
+            (sample_dir / f"raw_retry{attempt}.txt").write_text(retry_raw, encoding="utf-8")
+            _obj, dsl_line = extract_dsl_json(retry_raw)
+            if dsl_line:
+                raw = retry_raw
+                break
+
         err = ""
         svg = ""
         if dsl_line:
@@ -228,7 +252,7 @@ def main() -> None:
         entries.append({"id": rid, "prompt": prompt, "dsl": dsl_line or "", "svg": svg, "err": err})
         print(
             f"[shard {args.shard_index + 1}/{args.num_shards}] "
-            f"[{i}/{len(rows)}] id={rid} dsl={bool(dsl_line)} svg={bool(svg)}",
+            f"[{i}/{len(rows)}] id={rid} dsl={bool(dsl_line)} svg={bool(svg)} attempts={attempt + 1}",
             flush=True,
         )
 
