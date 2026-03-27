@@ -140,6 +140,7 @@ def main() -> None:
     p.add_argument("--model", type=Path, default=Path("outputs/qwen-dsl-sft/final"))
     p.add_argument("--test-csv", type=Path, default=Path("dl-spring-2026-svg-generation/test.csv"))
     p.add_argument("--out-dir", type=Path, default=Path("infer_test_out"))
+    p.add_argument("--limit", type=int, default=None, help="Only run first N test rows (smoke test)")
     p.add_argument("--bf16", action="store_true")
     p.add_argument("--max-new-tokens", type=int, default=4096)
     p.add_argument("--system-prompt", default=DEFAULT_SYSTEM)
@@ -159,6 +160,10 @@ def main() -> None:
     rows = load_test_rows(test_csv)
     if not rows:
         sys.exit(f"No test rows found in: {test_csv}")
+    if args.limit is not None:
+        rows = rows[: max(0, args.limit)]
+        if not rows:
+            sys.exit("--limit resulted in zero rows to process")
 
     out_dir.mkdir(parents=True, exist_ok=True)
     model, tokenizer = load_model(model_path, device, args.bf16)
