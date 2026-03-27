@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.py[cod]
+.DS_Store
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# GitHub blocks files > 100 MB (train.csv ~129 MB). Use Git LFS or host separately.
+dl-spring-2026-svg-generation/train.csv

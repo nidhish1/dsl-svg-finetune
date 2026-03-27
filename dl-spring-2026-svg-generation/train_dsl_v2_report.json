@@ -1,0 +1,54 @@
+{
+  "input_csv": "dl-spring-2026-svg-generation/train.csv",
+  "output_jsonl": "dl-spring-2026-svg-generation/train_dsl_v2.jsonl",
+  "total_rows": 50000,
+  "written_rows": 49484,
+  "dropped_rows": 516,
+  "drop_reasons": {
+    "dsl_v2_failed": 515,
+    "too_many_paths": 1
+  },
+  "dsl_version": 2,
+  "constraints": {
+    "canvas_size": 256,
+    "max_svg_length": 16000,
+    "max_path_count": 256,
+    "one_object_per_line": true,
+    "self_contained_rows": true,
+    "fixed_field_order": true,
+    "integer_coordinates_only": true,
+    "absolute_coordinates_only": true,
+    "closed_color_vocabulary": [
+      "NONE",
+      "BLACK",
+      "BLUE",
+      "BROWN",
+      "CYAN",
+      "GRAY",
+      "GREEN",
+      "MAGENTA",
+      "ORANGE",
+      "PINK",
+      "PURPLE",
+      "RED",
+      "WHITE",
+      "YELLOW"
+    ],
+    "no_hex_colors_in_dsl": true,
+    "small_command_vocabulary": [
+      "M",
+      "L",
+      "C",
+      "Q",
+      "A",
+      "Z",
+      "RECT",
+      "CIRCLE",
+      "ELLIPSE",
+      "LINE",
+      "POLYLINE",
+      "POLYGON",
+      "TEXT"
+    ]
+  }
+}

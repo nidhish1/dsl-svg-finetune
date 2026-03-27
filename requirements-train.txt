@@ -1,0 +1,9 @@
+# Python 3.10+ recommended. Use a venv:
+#   python3 -m venv .venv && source .venv/bin/activate
+#   pip install -r requirements-train.txt
+
+torch>=2.1.0
+transformers>=4.37.0
+trl>=0.15.0
+accelerate>=0.27.0
+datasets>=2.16.0
