@@ -8,6 +8,20 @@ dist/
 build/
 infer_results/
 infer_batch_out/
+outputs/
+
+# Experiment artifacts
+kitchenSink/repair_bad*/
+kitchenSink/final_repaired/
+kitchenSink/raw_repairs.csv
+kitchenSink/prompt_svg_preview_100.html
+kitchenSink/split_cases/
+kitchenSink2/bad/
+kitchenSink2/new_good/
+kitchenSink2/older_good/
+kitchenSink2/random_good_100.html
+kitchenSink2/summary.txt
+kitchenSink2/__pycache__/
 
 # GitHub blocks files > 100 MB (train.csv ~129 MB). Use Git LFS or host separately.
 dl-spring-2026-svg-generation/train.csv
