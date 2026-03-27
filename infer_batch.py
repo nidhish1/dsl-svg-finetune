@@ -127,9 +127,17 @@ def main() -> None:
     if not model_path.is_dir():
         sys.exit(f"Model not found: {model_path}")
 
+    prompts_path = args.prompts_file.expanduser().resolve()
+    if not prompts_path.is_file():
+        sys.exit(
+            f"Prompts file not found: {prompts_path}\n"
+            "Create it in the repo root (see prompts.txt) or pass a full path, e.g.\n"
+            "  --prompts-file /home/cc/dsl-svg-finetune/prompts.txt"
+        )
+
     lines = [
         ln.strip()
-        for ln in args.prompts_file.read_text(encoding="utf-8").splitlines()
+        for ln in prompts_path.read_text(encoding="utf-8").splitlines()
         if ln.strip() and not ln.strip().startswith("#")
     ]
     if not lines:

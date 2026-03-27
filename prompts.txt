@@ -1,0 +1,4 @@
+# One prompt per line. Lines starting with # are ignored.
+A simple black smiley face on a white background.
+A red circle and a blue square on white.
+An orange hexagon with the number 13 inside.
