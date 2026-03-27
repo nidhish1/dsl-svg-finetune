@@ -1,0 +1,1 @@
+A simple toggle switch in the off position.

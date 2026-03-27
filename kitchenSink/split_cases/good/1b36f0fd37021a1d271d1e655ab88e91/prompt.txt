@@ -1,0 +1,1 @@
+A simple circular icon with a blue play button in the center.

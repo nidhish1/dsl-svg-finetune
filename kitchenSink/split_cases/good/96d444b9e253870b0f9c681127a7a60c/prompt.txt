@@ -1,0 +1,1 @@
+A simple line drawing of a computer monitor with a base.

@@ -1,0 +1,1 @@
+Generate svg code for an image that looks like: a watch icon with a black background. Don't use markdown just give svg code

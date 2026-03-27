@@ -1,0 +1,1 @@
+Three squares with inner smaller squares and a triangle pointing down.

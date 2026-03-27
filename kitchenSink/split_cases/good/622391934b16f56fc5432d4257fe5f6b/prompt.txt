@@ -1,0 +1,1 @@
+A simple gray gear icon with a white center.

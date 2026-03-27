@@ -1,0 +1,1 @@
+Generate svg code for an image that looks like: a black background with a white and red flower. Don't use markdown just give svg code

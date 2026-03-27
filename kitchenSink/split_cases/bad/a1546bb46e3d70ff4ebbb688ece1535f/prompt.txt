@@ -1,0 +1,1 @@
+A simple line drawing of a cylindrical object with a dome-shaped top and a curved handle extending from it.

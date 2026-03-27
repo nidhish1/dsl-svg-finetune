@@ -1,0 +1,1 @@
+A simple, black line drawing of a ghost-like shape on a white background.

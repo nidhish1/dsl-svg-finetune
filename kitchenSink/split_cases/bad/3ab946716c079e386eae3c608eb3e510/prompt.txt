@@ -1,0 +1,1 @@
+A simple gray alarm clock icon with two bells on top.

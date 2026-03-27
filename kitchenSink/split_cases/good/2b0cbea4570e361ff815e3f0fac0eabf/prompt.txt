@@ -1,0 +1,1 @@
+A simple gray arrow pointing to the right.

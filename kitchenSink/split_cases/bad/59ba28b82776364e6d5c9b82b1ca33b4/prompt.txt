@@ -1,0 +1,1 @@
+A simple play button icon with a triangle inside a circle.

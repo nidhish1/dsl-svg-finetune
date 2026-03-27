@@ -1,0 +1,1 @@
+A stylized map icon with a location pin on top.

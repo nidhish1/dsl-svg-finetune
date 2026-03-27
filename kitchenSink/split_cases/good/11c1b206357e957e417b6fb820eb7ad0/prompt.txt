@@ -1,0 +1,1 @@
+A simple diagram representing a hierarchical structure with a central node connected to two other nodes.

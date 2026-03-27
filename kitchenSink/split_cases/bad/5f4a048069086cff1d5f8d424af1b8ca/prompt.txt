@@ -1,0 +1,1 @@
+A simple line drawing of a human figure with a circular head and body.

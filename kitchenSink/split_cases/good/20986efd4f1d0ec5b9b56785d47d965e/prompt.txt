@@ -1,0 +1,1 @@
+A simple gray bookmark icon with two horizontal lines.

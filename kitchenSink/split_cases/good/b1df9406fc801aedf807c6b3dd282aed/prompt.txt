@@ -1,0 +1,1 @@
+A red 'N' is divided by a blue diagonal line from bottom left to top right, intersecting with a blue 'L' at the bottom right.

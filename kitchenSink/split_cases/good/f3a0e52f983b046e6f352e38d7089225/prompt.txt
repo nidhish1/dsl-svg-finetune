@@ -1,0 +1,1 @@
+A stacked square icon with three layers.

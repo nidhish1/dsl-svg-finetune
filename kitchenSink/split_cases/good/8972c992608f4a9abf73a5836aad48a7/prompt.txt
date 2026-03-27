@@ -1,0 +1,1 @@
+A gray rectangle with a diagonal cross inside it.

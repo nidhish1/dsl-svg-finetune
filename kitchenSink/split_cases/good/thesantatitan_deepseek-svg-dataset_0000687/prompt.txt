@@ -1,0 +1,1 @@
+Generate svg code for an image that looks like: a bicycle with a yellow seat and black background. Don't use markdown just give svg code

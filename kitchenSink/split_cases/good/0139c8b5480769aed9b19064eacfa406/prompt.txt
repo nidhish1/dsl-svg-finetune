@@ -1,0 +1,1 @@
+A black grid consists of nine evenly spaced squares arranged in three rows and three columns within a white square background. The squares are uniformly sized and filled with solid black color, creating a symmetrical pattern.

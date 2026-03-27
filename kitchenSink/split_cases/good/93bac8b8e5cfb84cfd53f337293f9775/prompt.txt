@@ -1,0 +1,1 @@
+A simple icon representing a folder with two dots inside it.

@@ -1,0 +1,1 @@
+A simple icon representing a PDF file with a document shape and the letters 'PDF' below it.

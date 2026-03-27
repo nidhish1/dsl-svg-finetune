@@ -1,0 +1,1 @@
+A simple line drawing of a camera with black lines on a white background.

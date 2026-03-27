@@ -1,0 +1,1 @@
+Generate svg code for an image that looks like: a mask icon. Don't use markdown just give svg code

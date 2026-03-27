@@ -1,0 +1,1 @@
+A simple line drawing of a geometric shape resembling a trapezoid within a larger square.

@@ -1,0 +1,1 @@
+A simple gray thumbs-up icon representing approval or positive feedback.

@@ -1,0 +1,1 @@
+A simple line drawing of a person riding a bicycle.

@@ -1,0 +1,1 @@
+A simple line drawing of a tooth with a green highlight indicating a cavity or decay.

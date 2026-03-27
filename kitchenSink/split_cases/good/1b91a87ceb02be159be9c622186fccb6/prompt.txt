@@ -1,0 +1,1 @@
+A simple checkmark icon enclosed within a circle.

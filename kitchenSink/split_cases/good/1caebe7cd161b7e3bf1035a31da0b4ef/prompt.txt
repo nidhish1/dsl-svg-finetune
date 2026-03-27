@@ -1,0 +1,1 @@
+A black rectangle with white rectangular sections and dots, outlined by a rounded white border.

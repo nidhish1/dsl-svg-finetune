@@ -1,0 +1,1 @@
+Generate svg code for an image that looks like: a woman standing behind a table full of fruit. Don't use markdown just give svg code

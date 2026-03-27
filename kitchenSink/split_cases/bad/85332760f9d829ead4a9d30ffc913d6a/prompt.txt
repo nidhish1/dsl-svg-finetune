@@ -1,0 +1,1 @@
+A simple black triangle with three circles connected at each vertex.

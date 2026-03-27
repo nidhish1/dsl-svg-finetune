@@ -1,0 +1,1 @@
+A green bar chart icon with varying heights and a horizontal line.

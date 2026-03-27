@@ -1,0 +1,1 @@
+A simple black zigzag line on a white background.

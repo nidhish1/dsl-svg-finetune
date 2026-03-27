@@ -1,0 +1,1 @@
+A folder icon with a red 'X' indicating deletion or error.

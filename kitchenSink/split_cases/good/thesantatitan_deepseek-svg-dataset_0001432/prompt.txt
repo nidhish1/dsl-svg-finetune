@@ -1,0 +1,1 @@
+Generate svg code for an image that looks like: beer mug with beer and coins. Don't use markdown just give svg code

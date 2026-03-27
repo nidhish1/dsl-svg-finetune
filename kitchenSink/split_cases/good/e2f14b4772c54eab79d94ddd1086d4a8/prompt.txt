@@ -1,0 +1,1 @@
+A simple flag with a red circle centered on a white background.

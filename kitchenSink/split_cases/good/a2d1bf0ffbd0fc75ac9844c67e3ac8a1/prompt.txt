@@ -1,0 +1,1 @@
+A simple line drawing of a bookmark with three horizontal lines and a wavy bottom edge.
