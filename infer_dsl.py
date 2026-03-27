@@ -90,25 +90,33 @@ def main() -> None:
 
     dtype = torch.bfloat16 if (args.bf16 and args.device == "cuda") else torch.float32
     tokenizer = AutoTokenizer.from_pretrained(str(model_path), trust_remote_code=True)
-    model = AutoModelForCausalLM.from_pretrained(
-        str(model_path),
-        trust_remote_code=True,
-        torch_dtype=dtype if args.device == "cuda" else torch.float32,
-        device_map="auto" if args.device == "cuda" else None,
-    )
+    load_kw: dict = {
+        "trust_remote_code": True,
+        "device_map": "auto" if args.device == "cuda" else None,
+    }
+    dt = dtype if args.device == "cuda" else torch.float32
+    try:
+        model = AutoModelForCausalLM.from_pretrained(str(model_path), dtype=dt, **load_kw)
+    except TypeError:
+        model = AutoModelForCausalLM.from_pretrained(str(model_path), torch_dtype=dt, **load_kw)
     if args.device == "cpu":
         model = model.to("cpu")
 
     messages = build_messages(args.prompt, args.system_prompt, args.user_instruction)
-    prompt_ids = tokenizer.apply_chat_template(
+    # return_tensors="pt" yields a BatchEncoding; generate() needs input_ids tensor.
+    encoded = tokenizer.apply_chat_template(
         messages,
         tokenize=True,
         add_generation_prompt=True,
         return_tensors="pt",
     )
-    if args.device == "cuda":
-        prompt_ids = prompt_ids.to(model.device)
+    if isinstance(encoded, torch.Tensor):
+        prompt_ids = encoded
+    else:
+        prompt_ids = encoded["input_ids"]
+    prompt_ids = prompt_ids.to(model.device) if args.device == "cuda" else prompt_ids
 
+    prompt_len = prompt_ids.shape[1]
     with torch.inference_mode():
         out = model.generate(
             prompt_ids,
@@ -117,7 +125,7 @@ def main() -> None:
             pad_token_id=tokenizer.pad_token_id,
         )
 
-    new_tokens = out[0, prompt_ids.shape[1] :]
+    new_tokens = out[0, prompt_len:]
     raw = tokenizer.decode(new_tokens, skip_special_tokens=True)
     dsl_line = extract_dsl_line(raw)
     svg = ""
