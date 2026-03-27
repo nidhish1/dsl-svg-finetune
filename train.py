@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
+import os
 import sys
 from pathlib import Path
 
@@ -63,7 +65,18 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--gradient-accumulation-steps", type=int, default=8)
     p.add_argument("--num-train-epochs", type=float, default=1.0)
     p.add_argument("--learning-rate", type=float, default=2e-5)
-    p.add_argument("--warmup-ratio", type=float, default=0.03)
+    p.add_argument(
+        "--warmup-steps",
+        type=int,
+        default=None,
+        help="Linear warmup steps (overrides --warmup-ratio if set)",
+    )
+    p.add_argument(
+        "--warmup-ratio",
+        type=float,
+        default=0.03,
+        help="Used only when --warmup-steps is omitted; converted to warmup_steps before train",
+    )
     p.add_argument("--logging-steps", type=int, default=10)
     p.add_argument("--save-steps", type=int, default=500)
     p.add_argument("--save-total-limit", type=int, default=3)
@@ -117,29 +130,6 @@ def main() -> None:
 
     torch.manual_seed(args.seed)
 
-    # Qwen eos for alignment with chat template (see model card)
-    sft_args = SFTConfig(
-        output_dir=str(args.output_dir),
-        per_device_train_batch_size=args.per_device_train_batch_size,
-        gradient_accumulation_steps=args.gradient_accumulation_steps,
-        learning_rate=args.learning_rate,
-        num_train_epochs=args.num_train_epochs,
-        warmup_ratio=args.warmup_ratio,
-        logging_steps=args.logging_steps,
-        save_steps=args.save_steps,
-        save_total_limit=args.save_total_limit,
-        bf16=args.bf16,
-        fp16=args.fp16 and not args.bf16,
-        max_length=args.max_length,
-        packing=False,
-        shuffle_dataset=True,
-        report_to="none",
-        gradient_checkpointing=args.gradient_checkpointing,
-        # Use tokenizer default eos (Qwen uses </think> from config). Passing the string
-        # literal breaks TRL's vocab check because convert_tokens_to_ids splits multi-byte tokens.
-        model_init_kwargs=_model_init_kwargs(args),
-    )
-
     ds = load_dataset("json", data_files=str(args.data), split="train")
 
     if args.strict_json:
@@ -156,6 +146,41 @@ def main() -> None:
         n = min(args.max_samples, len(ds))
         ds = ds.select(range(n))
 
+    world_size = max(1, int(os.environ.get("WORLD_SIZE", "1")))
+    num_samples = len(ds)
+    eff_batch = (
+        args.per_device_train_batch_size * world_size * args.gradient_accumulation_steps
+    )
+    steps_per_epoch = max(1, math.ceil(num_samples / eff_batch))
+    total_steps = max(1, math.ceil(steps_per_epoch * args.num_train_epochs))
+    if args.warmup_steps is not None:
+        warmup_steps = max(0, args.warmup_steps)
+    else:
+        warmup_steps = max(0, int(args.warmup_ratio * total_steps))
+
+    # Qwen eos alignment with chat template (see model card). Use warmup_steps (warmup_ratio deprecated in HF v5.2+).
+    sft_args = SFTConfig(
+        output_dir=str(args.output_dir),
+        per_device_train_batch_size=args.per_device_train_batch_size,
+        gradient_accumulation_steps=args.gradient_accumulation_steps,
+        learning_rate=args.learning_rate,
+        num_train_epochs=args.num_train_epochs,
+        warmup_steps=warmup_steps,
+        logging_steps=args.logging_steps,
+        save_steps=args.save_steps,
+        save_total_limit=args.save_total_limit,
+        bf16=args.bf16,
+        fp16=args.fp16 and not args.bf16,
+        max_length=args.max_length,
+        packing=False,
+        shuffle_dataset=True,
+        report_to="none",
+        gradient_checkpointing=args.gradient_checkpointing,
+        # Use tokenizer default eos (Qwen uses </think> from config). Passing the string
+        # literal breaks TRL's vocab check because convert_tokens_to_ids splits multi-byte tokens.
+        model_init_kwargs=_model_init_kwargs(args),
+    )
+
     ds = ds.map(
         lambda ex: row_to_messages(ex, args.system_prompt, args.user_instruction),
         remove_columns=[c for c in ds.column_names],
@@ -167,10 +192,19 @@ def main() -> None:
         train_dataset=ds,
     )
 
-    trainer.train()
-    final_dir = args.output_dir / "final"
-    trainer.save_model(str(final_dir))
-    trainer.processing_class.save_pretrained(str(final_dir))
+    try:
+        trainer.train()
+        final_dir = args.output_dir / "final"
+        trainer.save_model(str(final_dir))
+        trainer.processing_class.save_pretrained(str(final_dir))
+    finally:
+        try:
+            import torch.distributed as dist
+
+            if dist.is_available() and dist.is_initialized():
+                dist.destroy_process_group()
+        except Exception:
+            pass
 
 
 if __name__ == "__main__":
