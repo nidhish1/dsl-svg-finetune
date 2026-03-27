@@ -7,6 +7,7 @@ __pycache__/
 dist/
 build/
 infer_results/
+infer_batch_out/
 
 # GitHub blocks files > 100 MB (train.csv ~129 MB). Use Git LFS or host separately.
 dl-spring-2026-svg-generation/train.csv

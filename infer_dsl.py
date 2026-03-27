@@ -13,18 +13,17 @@ from __future__ import annotations
 
 import argparse
 import html
-import json
-import re
 import sys
 from pathlib import Path
 
 import torch
-from transformers import AutoModelForCausalLM, AutoTokenizer
+from transformers import AutoModelForCausalLM, AutoTokenizer, GenerationConfig
 
 _ROOT = Path(__file__).resolve().parent
 _SCRIPTS = _ROOT / "scripts"
 if str(_SCRIPTS) not in sys.path:
     sys.path.insert(0, str(_SCRIPTS))
+from dsl_infer_utils import extract_dsl_line as extract_dsl_from_raw  # noqa: E402
 from dsl_v2_to_svg import dsl_to_svg  # noqa: E402
 
 # Match train.py defaults
@@ -37,24 +36,6 @@ DEFAULT_USER_INSTRUCTION = (
     "v, canvas, n, items). No markdown, no explanation. After the JSON line, output "
     "a second line containing only the word END."
 )
-
-
-def extract_dsl_line(text: str) -> str | None:
-    """Pull the first line that is valid DSL v2 JSON."""
-    cleaned = re.sub(r"```(?:json)?\s*", "", text, flags=re.IGNORECASE)
-    cleaned = cleaned.replace("```", "")
-    for line in cleaned.splitlines():
-        line = line.strip()
-        if not line or line == "END":
-            continue
-        if line.startswith("{") and '"v"' in line:
-            try:
-                obj = json.loads(line)
-                if isinstance(obj, dict) and obj.get("v") == 2 and "items" in obj:
-                    return json.dumps(obj, separators=(",", ":"), ensure_ascii=True)
-            except json.JSONDecodeError:
-                continue
-    return None
 
 
 def build_messages(prompt: str, system: str, instruction: str) -> list:
@@ -116,18 +97,24 @@ def main() -> None:
         prompt_ids = encoded["input_ids"]
     prompt_ids = prompt_ids.to(model.device) if args.device == "cuda" else prompt_ids
 
+    attention_mask = torch.ones_like(prompt_ids, dtype=torch.long)
     prompt_len = prompt_ids.shape[1]
+    gen_cfg = GenerationConfig(
+        max_new_tokens=args.max_new_tokens,
+        do_sample=False,
+        pad_token_id=tokenizer.pad_token_id,
+        eos_token_id=tokenizer.eos_token_id,
+    )
     with torch.inference_mode():
         out = model.generate(
             prompt_ids,
-            max_new_tokens=args.max_new_tokens,
-            do_sample=False,
-            pad_token_id=tokenizer.pad_token_id,
+            attention_mask=attention_mask,
+            generation_config=gen_cfg,
         )
 
     new_tokens = out[0, prompt_len:]
     raw = tokenizer.decode(new_tokens, skip_special_tokens=True)
-    dsl_line = extract_dsl_line(raw)
+    dsl_line = extract_dsl_from_raw(raw)
     svg = ""
     parse_err = ""
     if dsl_line:
