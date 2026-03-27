@@ -135,12 +135,24 @@ def load_test_rows(test_csv: Path) -> list[dict]:
     return rows
 
 
+def select_shard_rows(rows: list[dict], num_shards: int, shard_index: int) -> list[dict]:
+    if num_shards < 1:
+        raise ValueError("--num-shards must be >= 1")
+    if shard_index < 0 or shard_index >= num_shards:
+        raise ValueError("--shard-index must be in [0, --num-shards)")
+    if num_shards == 1:
+        return rows
+    return [row for i, row in enumerate(rows) if (i % num_shards) == shard_index]
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description="Inference on test.csv -> submission files")
     p.add_argument("--model", type=Path, default=Path("outputs/qwen-dsl-sft/final"))
     p.add_argument("--test-csv", type=Path, default=Path("dl-spring-2026-svg-generation/test.csv"))
     p.add_argument("--out-dir", type=Path, default=Path("infer_test_out"))
     p.add_argument("--limit", type=int, default=None, help="Only run first N test rows (smoke test)")
+    p.add_argument("--num-shards", type=int, default=1, help="Total shard count for parallel multi-GPU runs")
+    p.add_argument("--shard-index", type=int, default=0, help="This worker shard index [0..num_shards-1]")
     p.add_argument("--bf16", action="store_true")
     p.add_argument("--max-new-tokens", type=int, default=4096)
     p.add_argument("--system-prompt", default=DEFAULT_SYSTEM)
@@ -164,6 +176,12 @@ def main() -> None:
         rows = rows[: max(0, args.limit)]
         if not rows:
             sys.exit("--limit resulted in zero rows to process")
+    try:
+        rows = select_shard_rows(rows, args.num_shards, args.shard_index)
+    except ValueError as ex:
+        sys.exit(str(ex))
+    if not rows:
+        sys.exit("No rows assigned to this shard")
 
     out_dir.mkdir(parents=True, exist_ok=True)
     model, tokenizer = load_model(model_path, device, args.bf16)
@@ -171,6 +189,12 @@ def main() -> None:
     submission_svg_rows: list[dict] = []
     submission_dsl_rows: list[dict] = []
     entries: list[dict] = []
+
+    print(
+        f"Running shard {args.shard_index + 1}/{args.num_shards} on {len(rows)} rows "
+        f"(device={device}, max_new_tokens={args.max_new_tokens})",
+        flush=True,
+    )
 
     for i, row in enumerate(rows, start=1):
         rid = row["id"]
@@ -202,7 +226,11 @@ def main() -> None:
         submission_dsl_rows.append({"id": rid, "dsl": dsl_line or ""})
         submission_svg_rows.append({"id": rid, "svg": svg})
         entries.append({"id": rid, "prompt": prompt, "dsl": dsl_line or "", "svg": svg, "err": err})
-        print(f"[{i}/{len(rows)}] id={rid} dsl={bool(dsl_line)} svg={bool(svg)}", flush=True)
+        print(
+            f"[shard {args.shard_index + 1}/{args.num_shards}] "
+            f"[{i}/{len(rows)}] id={rid} dsl={bool(dsl_line)} svg={bool(svg)}",
+            flush=True,
+        )
 
     with (out_dir / "submission_dsl.csv").open("w", encoding="utf-8", newline="") as f:
         writer = csv.DictWriter(f, fieldnames=["id", "dsl"])
